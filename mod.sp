@@ -1,3 +1,5 @@
+import "mod"
+
 config {
   provider = "awssdk"
   version  = "latest"
