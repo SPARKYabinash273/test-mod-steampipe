@@ -1,32 +1,20 @@
-benchmark "aws_top_10" {
-  title       = "AWS Top 10"
-  description = "Controls relevant to the top 10 security items."
-
-  children = [
-    benchmark.accurate_account_info,
-    benchmark.use_mfa,
-    benchmark.no_secrets,
-    benchmark.limit_security_groups,
-    benchmark.intentional_data_policies,
-    benchmark.centralize_cloudtrail_logs,
-    benchmark.validate_iam_roles,
-    benchmark.take_action_on_findings,
-    benchmark.rotate_keys
-  ]
-
+config {
+  provider = "awssdk"
+  version  = "latest"
 }
 
-benchmark "accurate_account_info" {
-  title = "1. Accurate account information"
-  children = [
-  ]
+data "external" "aws_cost_data" {
+  program = ["sh", "get_cost_data.sh"]
 }
 
-benchmark "use_mfa" {
-  title = "2. Use multi-factor authentication (MFA)"
-  children = [
-    aws_compliance.control.iam_root_user_mfa_enabled,
-    aws_compliance.control.iam_user_mfa_enabled,
-    aws_compliance.control.iam_user_console_access_mfa_enabled,
-  ]
-}
+select
+  resource_id,
+  cost_type,
+  usage_start_date,
+  usage_end_date,
+  diff(cost_amount) as cost_change_percentage
+from
+  aws_cost_data
+where
+  usage_start_date > now() - interval '6 months'
+  and cost_type in ('AmazonGuardDuty', 'AmazonInspector')
